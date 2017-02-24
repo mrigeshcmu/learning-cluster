@@ -29,6 +29,7 @@ Before you begin, it would be good if your team is familiar with:
   - ifconfig
   - route
   - ethtool
+  - iptables
   - dig
 - SSH
 - Hadoop
@@ -71,7 +72,7 @@ Overview: Given four blank servers, we need to :
 
 The network should be built similar to this image
 
-![image](network.png)
+![image](http://i.imgur.com/hlnkgYF.png)
 
 ## <a name="install-ubuntu">Install Ubuntu</a>
 
@@ -90,10 +91,10 @@ Press F11 when the system is starting and choose to start from the Ubuntu Server
 7. Encrypt your home directory? Select `No`
 8. Partition method: `Guided - use entire disk` if there is such a choice. If there is multiple partition selections, just take the default one.
 9. Write changes to disks? Select `Yes`
-10. Network configuration. Choose `eth1` as the primary network when configuring `losalamos` and `eth0` (OR `eth1`, depending on where you physically connect the cable) when you configure `alpha`, `beta` and `gamma`. Also, in case of `alpha`, `beta` and `gamma`, the network configuration will fail. Select `Do not configure network`.
-11. HTTP proxy information? `Continue` with blank
-12. How do you want to manage upgrades on this system? `Install security updates automatically`
-13. Choose software to install: Press space on `OpenSSH server` and there is a `*` ensures that you have selected the service. Then select `Continue`.
+10. Network configuration. Choose `eth1` as the primary network when configuring `losalamos` and `eth0` when you configure `alpha`, `beta` and `gamma`. Make sure that the ethernet cables on the 3 lower servers connect the router to `eth0`. Also, in case of `alpha`, `beta` and `gamma`, the network configuration will fail. Select *Do not configure network* and continue.
+11. HTTP proxy information? *Continue* with blank
+12. How do you want to manage upgrades on this system? *Install security updates automatically*
+13. Choose software to install: Press space on *OpenSSH server* and there is a `*` ensures that you have selected the service. Then select *Continue*.
 14. Install the GRUB boot loader to the master boot record? Choose `YES`. TODO: Describe
 15. Before finishing installation, choose `Yes` for `Set clock to UTC` option. TODO: Why?
 16. Unmount partitions that are in use? `YES`
@@ -107,7 +108,7 @@ Press F11 when the system is starting and choose to start from the Ubuntu Server
 
 2. Sometimes the system may get stuck when reboots after completing installation, in such rare cases, just press the reboot button on the back of the server for more than 10 seconds and restart the system.
 
-3. During the installation, configure the primary network of `losalamos` on the `eth1` interface. You don't need to configure the network of three innet machines during the install process. Thus, when installing Ubuntu on the three innet machines, you can either chose `eth0` or `eth1` during network configuration step, and it will eventually show "network auto configuration failed", just ignore and continue.
+3. During the installation, configure the primary network of `losalamos` on the `eth1` interface. You don't need to configure the network of three innet machines during the install process. When installing Ubuntu on the three innet machines, choose `eth0` during the network configuration step, and it will eventually show "network auto configuration failed", just ignore it and continue.
 
 4. You probably want to set up the OpenSSH service during installation, so that you can then connect to the server using terminal on your own laptops. If you choose *not to update the server automatically* when you install the server, you need to install OpenSSH using 
 
@@ -141,10 +142,12 @@ There are two ways, which is DHCP and static IP, to setup connection between `lo
 ```
 sudo su
 ```
-
 ![](https://imgs.xkcd.com/comics/sandwich.png)
 
-2. Start from `losalamos`. Configure `eth0` in the file `/etc/network/interfaces`, using the command line `sudo vim /etc/network/interfaces`. The content would be 
+2. Start from `losalamos`. Configure `eth0` in the file `/etc/network/interfaces`, using the command line:
+```sudo vim /etc/network/interfaces```
+
+The content would be:
 ```
     auto eth0
     iface eth0 inet static
@@ -156,7 +159,8 @@ sudo su
 ```
 You can find an example [here](https://wiki.debian.org/NetworkConfiguration), in the **Configuring the interface manually** section. 
 Attention: comment the keyword `loopback` and `dhcp` if you use static ip method (This is not needed!). `loopback` and `dhcp` are the default keywords which have already been in the files.
-3. (Recommended) Still in the configuration of `losalamos`. Configure the file `/etc/hosts`, using the command line `sudo vim /etc/hosts`. The content would be
+
+3. (Recommended) Still in the configuration of `losalamos`, modify the file `/etc/hosts`, using the command line `sudo vim /etc/hosts`. The content would be
 ```
 10.0.0.2 losalamos.pc.cs.cmu.edu losalamos
 10.0.0.3 alpha.pc.cs.cmu.edu alpha
@@ -203,31 +207,38 @@ cat /sys/kernel/mm/transparent_hugepage/enabled
 > * Switch to innet machines, up the `eth1`, and set up each `eth1` to `dhcp`. You can check this [page](http://inside.mines.edu/CCIT-NET-SS-Configuring-a-Dynamic-IP-Address-Debian-Linux) to help.
 
 
-## <a name="iptables">Iptables</a>
+## <a name="iptables">iptables</a>
 
 ![iptables](http://www.system-rescue-cd.org/images/dport-routing-02.png)
 
-For now, the machines in the subnet are unable to connect the real internet. This is because the gateway does not forward their tcp/udp requests to the outside world. Thus we use `iptables` to tell gateway forwarding them.  
+For now, the machines in the subnet are unable to connect the Interney. This is because the gateway does not forward their tcp/udp requests to the outside world. Thus we use `iptables` to tell gateway forwarding them.  
+
+iptables are like rule books that are used when a connection tries to establish itself on the server. The tables find a matching rule and take the corresponding action or use the default rule if no match is found. In the assignment we could add the `ACCEPT` rule for connections through ports that we know are being used by the required services (Such as port 22 for ssh etc.) and place a default rule to block all connections. Thus all required connections would be allowed and others would automatically be blocked.
+
 
 ### Steps
-1. Configure `losalamos`. Input the following command line,
- `sudo bash -c 'echo 1 > /proc/sys/net/ipv4/ip_forward'`
- `sudo iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE`
- `sudo iptables -A FORWARD -i eth1 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT`
- `sudo iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT`
-If the above command lines don't work in your case, please refer to this [HOWTO WIKI](http://www.revsys.com/writings/quicktips/nat.html). If you want to know more about forwarding, check [this](http://www.howtogeek.com/177621/the-beginners-guide-to-iptables-the-linux-firewall/).
-Attention: `HOWTO WIKI` is not totally same as our case, according to the image above. `eth0` and `eth1` are supposed to be swapped in our case, compared with the examples in the wiki. Don't overthink the command lines in HOWTO WIKI. Just type in the commands, they are not script.
+1. Configure `losalamos`. **As root**, execute the following:
+
+        echo 1 > /proc/sys/net/ipv4/ip_forward
+        iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+        iptables -A FORWARD -i eth1 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+        iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
+    
+If the above lines don't work in your case, please refer to this [HOWTO WIKI](http://www.revsys.com/writings/quicktips/nat.html). If you want to know more about forwarding, check [this](http://www.howtogeek.com/177621/the-beginners-guide-to-iptables-the-linux-firewall/).
+Attention: The `HOWTO WIKI` works in the opposite  according to the image above. `eth0` and `eth1` are supposed to be swapped in our case, compared with the examples in the wiki. 
+
 After configuring iptables, all four machines should be able to connect to the Internet now, you can try to ping www.google.com on all four machines to test your configuration.
 
-You may want to configure the iptables to block some incoming traffic and allow access only to particular protocols and ports. [Here](http://developer-should-know.tumblr.com/post/128018906292/minimal-iptables-configuration) is a quick introduction. Use `iptables -L -v` to check current valid rules. In case you wrongly add a certain rule, use `iptable -D [rules]` to delete a cerain rules, check [this](https://www.digitalocean.com/community/tutorials/how-to-list-and-delete-iptables-firewall-rules) for reference. 
+You may want to configure iptables to block some incoming traffic and allow access only to particular protocols and ports. [Here](http://developer-should-know.tumblr.com/post/128018906292/minimal-iptables-configuration) is a quick introduction. Use:
 
-If you block or drop some important ports (i.e., 22, 80, 8080), you might lose the SSH connection or HTTP connection.
+    iptables -vL
+to check current valid rules. In case you wrongly add a certain rule, use `iptable -D [rules]` to delete a cerain rules, check [this](https://www.digitalocean.com/community/tutorials/how-to-list-and-delete-iptables-firewall-rules) for reference. 
 
-## IPtable explanation:
-IPtables are like rule books that are used when a connection tries to establish itself on the server. The tables find a matching rule and take the corresponding action or use the default rule if no match is found. In the assignment we could add the `ACCEPT` rule for connections through ports that we know are being used by the required services (Such as port 22 for ssh etc.) and place a default rule to block all connections. Thus all required connections would be allowed and others would automatically be blocked.
+If you block or drop some important ports (i.e., 22, 80, 8080), you might lose SSH or HTTP connectivity.
 
 It is very important to remember and save the changes that have been made to the iptable, otherwise all the rules will get deleted the next time the ip table servise is restarted. To save the ip table use the following command in Ubuntu:
-`sudo /sbin/iptables-save`
+
+    /sbin/iptables-save
 
 To further understand IP tables here are a few good resources:
 * [Beginners Guide](http://www.howtogeek.com/177621/the-beginners-guide-to-iptables-the-linux-firewall/)
