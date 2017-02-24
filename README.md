@@ -12,66 +12,45 @@
 * [How to Re-create the Cluster](#recreate-cluster)
 * [Basic Network Troubleshooting](#troubleshoot)
 
-## You may want to bring ear plugs and a jacket to the machine lab, as you will be working next to a rack server in an air-conditioned room for a couple of hours. Once you are able to `ssh` into your cluster, you can access them from outside the lab.
+## You may want to bring ear plugs and a jacket to the machine lab, as you will be working next to a rack server in an air-conditioned room for a couple of hours. Once you are able to *ssh* into your cluster, you can access it from outside the lab.
 
-# <a name="requirement">Hadoop Cluster Requirements</a>
-- OS: CentOS 7/ Ubuntu 14.04
-- Network Structure: NAT, `losalamos` need to be the NAT server. `losalamos` can be connected to the port on wall through "eno2".
-- Install Choice: [Link to installation]( http://docs.hortonworks.com/HDPDocuments/Ambari-2.2.0.0/bk_Installing_HDP_AMB/bk_Installing_HDP_AMB-20151221.pdf)
-- You need to install `HDFS`,`MapReduce2 + YARN`, `Ambari Metrics`, and `ZooKeeper` and you must install the package we are currently learning.
-- You must keep a wiki of the necessary steps you think may be helpful to the next group here. Change of the wiki also is part of the grading.
-- You have 3 whole days minus 2h for grading from 1:00 PM the first day to 11:00 AM the last day.
+# <a name="knowledge">Background</a>
+
+This project gives you mad sysadmin skillz
+
+![](https://i.stack.imgur.com/XrxJB.png)
+
+Before you begin, it would be good if your team is familiar with:
+- Bash scripting and Linux usage, like:
+  - Redirects
+  - Filesystem permissions
+  - dmesg
+- Practical network configuration, like using:
+  - ifconfig
+  - route
+  - ethtool
+  - dig
+- SSH
+- Hadoop
+- Github-flavoured Markdown
+
+# <a name="hd">The hardware</a>
+- There are four servers to set up, of which the one on the top (`losalamos`) needs direct access to the Internet;
+- The device connecting the servers is just a switch, not a router. Forwarding is needed to connect the other three servers to the Internet;
+- Every server has two network adapters, `eth0` and `eth1`
+- Just by convention, on `losalamos`, you should use `eth1` to connect to the Internet, it should use `eth0` for the sub network.
+- Keep the roles of `eth0` and `eth1` in mind when you are configuring iptables with the linked tutorials: you may need to change the bash command given in those tutorials if you try to be a smartass.
+- **Important** : Check the machine which has 2 UPS backup connections - use them as `losalamos` (name node). Currently, it is the top most machine in the rack. (Ask the TAs in case of any issues). Sometimes, the power backup fails, and hence having an additional backup helps to keep the name node running.
 
 
-# Grading Criteria (30')
+# <a name="requirement">Project Requirements</a>
+- OS: Ubuntu 14.04
+- Network Structure: NAT, `losalamos` needs to be the NAT server. `losalamos` can be connected to the port on wall through `eno2`.
+- Install Ambari using [this link]( http://docs.hortonworks.com/HDPDocuments/Ambari-2.2.0.0/bk_Installing_HDP_AMB/bk_Installing_HDP_AMB-20151221.pdf)
+- Specifically, you need to install HDFS, YARN, Ambari Metrics and zookeeper.
+- You must update this wiki describing the necessary steps that you think may be helpful to the next group here. You can look at other groups' progress [here](https://github.com/bicCluster/learning-cluster/network) (specifically, check out their commits and study their diffs). Create a fork of the repository into your own Github account and submit a pull request when done ([like so](https://gist.github.com/Chaser324/ce0505fbed06b947d962)).
+- You have only 70 hours to complete this project from 1:00 PM the first day to 11:00 AM the last day.
 
-## Wiki (extra points 5')
-- Write down all the problems you have met and how you solve them.
-- Make a clear demonstration on how you demo runs. For example, in a wordcount demo, you can describe how NameNode, DataNode, Jobtracker, Tasktracker (or container in YARN) work together to run this demo.
-- Improve the sections of the previous wiki which are ambiguous.
-- Less than 10 lines of wiki added/Modified, or simple modification makes no sense.
-
-## Self designed demo with scripts to run without any intervention (15')
-- Beyond expectation, test some points that TA would not think of, and make a perfect explanation on how the demo runs. (15')
-- Meet expectation, the demo works fine, make reasonable explanation. (12')
-- Basically meet expectation (9')
-- Below expectation, there are some essential points are not tested (6')
-- Demo does not work will add another 3 points penalty on the previous grade.
-- Demo requires TA intervention will add 1~2 points penalty on the previous grade depending on the time spend on intervention.
-
-## Other (15')
-- Iptables is up on losalamos and has basic protection with minimum iptables (3')
-- Primary Name Node and Data Nodes should be on separate machines. (3')
-- Primary Name Node and Secondary Name Nodes should be on separate machines. (3')
-- NAT test, get google home page on other three machines. (3')
-- Strong Password, password including at least a number and a letter and longer than 6 characters (3')
-- No Alert in Ambari. (1' each alert, 2' max)
-
-### Minimum Iptables
-```
-target     prot opt in     out     source               destination
-ACCEPT     all  --  any    any     anywhere             anywhere             ctstate RELATED,ESTABLISHED
-ACCEPT     all  --  lo     any     anywhere             anywhere
-ACCEPT     icmp --  any    any     anywhere             anywhere
-REJECT     all  --  any    any     anywhere             anywhere             reject-with icmp-host-prohibited
-```
-
-# <a name="knowledge">Knowledge Background</a>
-- Ubuntu Command Line, Network Config (hostname, hosts, etc)
-- Basic Computer Network knowledge, like DNS, Subnet (IP, Mask), Gateway;
-- SSH, NAT, Forwarding
-- Hadoop structure
-- Basic understanding of above topics would make this work much easier
-
-# <a name="hd">Things about hardware you should know</a>
-- There are four servers to set up, but only the first one (`losalamos`) has access to the Internet;
-- The box connecting the servers is just a switch, not a router. So “forwarding” is needed to get the other three servers connected to the Internet;
-- Every server has two network adapters, `eth0` and `eth1`, and it can only connects to the Internet by `eth1`. So please double-check the connection ports;
-- Since `losalamos` uses `eth1` to connect to the Internet, it should use `eth0` for the sub network.
-- Keep the roles of `eth0` and `eth1` in mind when you are configuring iptables with the linked tutorials: you may need to change the bash command given in those tutorials.
-- **Important** : Check the machine which has 2 UPS backup connections - use them as `losalamos` (name node). Currently, it is the top most machine in the rack. (Ask TAs in case of any issues). Sometimes, the power backup fails, and hence having an additional backup helps to keep the name node running.
-
-<hr>
 
 ## <a name="milestone-checklist">Milestone Checklist</a>
 
@@ -462,3 +441,36 @@ All your are doing is going either up or down the network model layers.
 
 
 
+# Grading Criteria (30')
+
+## Wiki (extra points 5')
+- Write down all the problems you have met and how you solve them.
+- Make a clear demonstration on how you demo runs. For example, in a wordcount demo, you can describe how NameNode, DataNode, Jobtracker, Tasktracker (or container in YARN) work together to run this demo.
+- Improve the sections of the previous wiki which are ambiguous.
+- Less than 10 lines of wiki added/Modified, or simple modification makes no sense.
+
+## Self designed demo with scripts to run without any intervention (15')
+- Beyond expectation, test some points that TA would not think of, and make a perfect explanation on how the demo runs. (15')
+- Meet expectation, the demo works fine, make reasonable explanation. (12')
+- Basically meet expectation (9')
+- Below expectation, there are some essential points are not tested (6')
+- Demo does not work will add another 3 points penalty on the previous grade.
+- Demo requires TA intervention will add 1~2 points penalty on the previous grade depending on the time spend on intervention.
+
+## Other (15')
+- Iptables is up on losalamos and has basic protection with minimum iptables (3')
+- Primary Name Node and Data Nodes should be on separate machines. (3')
+- Primary Name Node and Secondary Name Nodes should be on separate machines. (3')
+- NAT test, get google home page on other three machines. (3')
+- Strong Password, password including at least a number and a letter and longer than 6 characters (3')
+- No Alert in Ambari. (1' each alert, 2' max)
+
+### Minimum iptables
+```
+target     prot opt in     out     source               destination
+ACCEPT     all  --  any    any     anywhere             anywhere             ctstate RELATED,ESTABLISHED
+ACCEPT     all  --  lo     any     anywhere             anywhere
+ACCEPT     icmp --  any    any     anywhere             anywhere
+REJECT     all  --  any    any     anywhere             anywhere             reject-with icmp-host-prohibited
+```
+<hr>
