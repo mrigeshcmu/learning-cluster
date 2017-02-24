@@ -1,1 +1,73 @@
 gateway tcpdump 
+Download gcc make
+downlaod mpssh 
+make mpssh and add binary to the path
+
+ulimit change permenantly 
+http://superuser.com/questions/740000/modify-and-apply-limits-conf-without-reboot
+/etc/security/limits.conf
+root soft nofile 1048576
+root hard nofile 1048576
+
+
+/etc/pam.d/common-session
+session required pam_limits.so
+
+Check without restaring the machine
+http://unix.stackexchange.com/a/108605
+start a new shell and do ulimt -n  and cross check the new values
+
+
+mpssh 'echo "* soft nofile 1048576" >> /etc/security/limits.conf' -f slaves   
+mpssh 'echo "* hard nofile 1048576" >> /etc/security/limits.conf' -f slaves   
+mpssh 'echo "root soft nofile 1048576" >> /etc/security/limits.conf' -f slaves   
+mpssh 'echo "root hard nofile 1048576" >> /etc/security/limits.conf' -f slaves
+Mrigesh • Now
+
+mpssh 'echo "session required pam_limits.so" >> /etc/pam.d/common-session' -f slaves
+mpssh 'tail -1 /etc/pam.d/common-session' -f slaves
+root@losalamos:/home/starzl# mpssh 'ulimit -n' -f slaves
+ [*] read (3) hosts from the list
+ [*] executing "ulimit -n" as user "root" on each
+ [*] spawning 3 parallel ssh sessions
+
+gamma -> 1048576
+alpha -> 1048576
+beta  -> 1048576
+
+
+mpssh "service ntp status" -f all
+gamma     ->  * NTP server is running
+alpha     ->  * NTP server is running
+losalamos ->  * NTP server is running
+beta      ->  * NTP server is running
+Mrigesh • Now
+
+ssh-keygen -t ed25519
+id_ed25519  id_ed25519.pub
+
+
+
+root@losalamos:/home/starzl# mpssh "grep 10 /etc/hosts" -f all
+alpha     -> 10.0.0.2 losalamos.pc.cs.cmu.edu losalamos
+alpha     -> 10.0.0.3 alpha.pc.cs.cmu.edu alpha
+alpha     -> 10.0.0.4 beta.pc.cs.cmu.edu beta
+alpha     -> 10.0.0.5 gamma.pc.cs.cmu.edu gamma
+gamma     -> 10.0.0.5 gamma.pc.cs.cmu.edu	gamma
+gamma     -> 10.0.0.2 losalamos.pc.cs.cmu.edu losalamos
+gamma     -> 10.0.0.3 alpha.pc.cs.cmu.edu alpha
+gamma     -> 10.0.0.4 beta.pc.cs.cmu.edu beta
+gamma     -> 10.0.0.5 gamma.pc.cs.cmu.edu gamma
+beta      -> 10.0.0.4 beta.pc.cs.cmu.edu	beta
+beta      -> 10.0.0.2 losalamos.pc.cs.cmu.edu losalamos
+beta      -> 10.0.0.3 alpha.pc.cs.cmu.edu alpha
+beta      -> 10.0.0.4 beta.pc.cs.cmu.edu beta
+beta      -> 10.0.0.5 gamma.pc.cs.cmu.edu gamma
+losalamos -> 10.0.0.2 losalamos.pc.cs.cmu.edu losalamos
+losalamos -> 10.0.0.3 alpha.pc.cs.cmu.edu alpha
+losalamos -> 10.0.0.4 beta.pc.cs.cmu.edu beta
+losalamos -> 10.0.0.5 gamma.pc.cs.cmu.edu gamma
+
+
+ mpssh "echo umask 0022 >> /etc/profile" -f all
+ 
