@@ -1,5 +1,3 @@
-__!!!NO USERNAME, PASSWORD HERE!!!__
-
 * [Hadoop Cluster Requirements](#requirement)
 * [Knowledge Background](#knowledge)
 * [Notes About Hardware](#hd)
@@ -14,7 +12,7 @@ __!!!NO USERNAME, PASSWORD HERE!!!__
 * [How to Re-create the Cluster](#recreate-cluster)
 * [Basic Network Troubleshooting](#troubleshoot)
 
-## You may want to bring ear plugs to the machine lab, as you will be working next to a rack server for a couple of hours. Once you are able to ssh into your cluster, you can access them from outside the lab.
+## You may want to bring ear plugs and a jacket to the machine lab, as you will be working next to a rack server in an air-conditioned room for a couple of hours. Once you are able to `ssh` into your cluster, you can access them from outside the lab.
 
 # <a name="requirement">Hadoop Cluster Requirements</a>
 - OS: CentOS 7/ Ubuntu 14.04
@@ -66,12 +64,12 @@ REJECT     all  --  any    any     anywhere             anywhere             rej
 - Basic understanding of above topics would make this work much easier
 
 # <a name="hd">Things about hardware you should know</a>
-- There are four servers to set up, but only the first one (Losalamos) has access to the Internet;
+- There are four servers to set up, but only the first one (`losalamos`) has access to the Internet;
 - The box connecting the servers is just a switch, not a router. So “forwarding” is needed to get the other three servers connected to the Internet;
 - Every server has two network adapters, `eth0` and `eth1`, and it can only connects to the Internet by `eth1`. So please double-check the connection ports;
 - Since `losalamos` uses `eth1` to connect to the Internet, it should use `eth0` for the sub network.
 - Keep the roles of `eth0` and `eth1` in mind when you are configuring iptables with the linked tutorials: you may need to change the bash command given in those tutorials.
-- **Important** : Check the machine which has 2 UPS backup connections - use them as losalamos (name node). Currently, it is the top most machine in the rack.(Ask TAs in case of any issues). Sometimes, the power backup fails, and hence having an additional backup helps to keep the name node running.
+- **Important** : Check the machine which has 2 UPS backup connections - use them as `losalamos` (name node). Currently, it is the top most machine in the rack. (Ask TAs in case of any issues). Sometimes, the power backup fails, and hence having an additional backup helps to keep the name node running.
 
 <hr>
 
@@ -87,66 +85,87 @@ REJECT     all  --  any    any     anywhere             anywhere             rej
 
 # <a name="step">Steps to Follow</a>
 
-Overview: Given four blank server, we need to install system and establish a subnet. Finally install the requested hortonwork components. The network should be built as this image
+Overview: Given four blank servers, we need to :
+1. install an operating system on each one, 
+2. establish a subnet and forward Internet traffic through a IP gateway
+3. install the requested hortonwork components. 
+
+The network should be built similar to this image
 
 ![image](network.png)
 
 ## <a name="install-ubuntu">Install Ubuntu</a>
 
-Install Ubuntu (recommend 14.04) on each machine. The hard disks of four machines should already be erased. If not, press F11 when the system is starting and choose to start from the CD rom.
+Install Ubuntu (recommend 14.04) on each machine. 
 
-It may be hard to create a bootable USB stick on mac OS X. Failures occured for the following two approaches:
-1. burn by command `dd` [[ref]](http://www.ubuntu.com/download/desktop/create-a-usb-stick-on-mac-osx)
-2. burn by UNetbootin [[ref]](http://unetbootin.github.io/) Please update if there are methods that work. A convenient method is to install Ubuntu from CD (the CD is already provided, you can find it near the machines).
+The hard disks of four machines would not be erased. 
+Press F11 when the system is starting and choose to start from the Ubuntu Server Boot Disk (ask course staff for the disk).
 
-###Bullet points when installation
-1. Insert the disk and press the power button to turn-off the machine. The lights on the machine should turn-off after a few seconds. Then press the pwer button again to start the machine.
-2. Once the machine starts, press F11 to enter Boot menu. Select `boot from disk` option.
+### Bullet points when installation
+1. Insert the disk and press <kbd>CTRL</kbd>+<kbd>ALT</kbd>+<kbd>DEL</kbd>.
+2. Once the machine starts, press and hold F11 until the display indicates that it is ready to enter the Boot menu. Select the *boot from disk* option.
 3. Select the `Install Ubuntu Server` option.
-4. Make the appropriate language realted settings.
-5. Detect keyboard layout? Select `No`
-6. Select the appropriate time settings.
+4. Choose the appropriate language related settings.
+5. Detect keyboard layout? Select `No` unless you want to answer a lot of irritating questions. Choose US + US as the layout.
+6. Select the appropriate time settings. Assuming that the cluster remains in Pittsburgh, your time zone should be Eastern.
 7. Encrypt your home directory? Select `No`
 8. Partition method: `Guided - use entire disk` if there is such a choice. If there is multiple partition selections, just take the default one.
 9. Write changes to disks? Select `Yes`
-10. Network configuration. Choose `eth1` when configure `losalamos` and `eth0` (OR `eth1`, both are okay) when configure `alpha`, `beta` and `gamma`. Also, in case of `alpha`, `beta` and `gamma`, the network config will fail. Select `Do not configure netwrok`.
+10. Network configuration. Choose `eth1` as the primary network when configuring `losalamos` and `eth0` (OR `eth1`, depending on where you physically connect the cable) when you configure `alpha`, `beta` and `gamma`. Also, in case of `alpha`, `beta` and `gamma`, the network configuration will fail. Select `Do not configure network`.
 11. HTTP proxy information? `Continue` with blank
 12. How do you want to manage upgrades on this system? `Install security updates automatically`
-13. Choose software to install: Press space on `OpenSSH server` and there is a `*` ensures that you have chosen the software. Then press `Continue`.
-14. Install the GRUB boot loader to the master boot record? Choose `YES`.
-15. Before finishing installation, choose `Yes` for `Set clock to UTC` option  
+13. Choose software to install: Press space on `OpenSSH server` and there is a `*` ensures that you have selected the service. Then select `Continue`.
+14. Install the GRUB boot loader to the master boot record? Choose `YES`. TODO: Describe
+15. Before finishing installation, choose `Yes` for `Set clock to UTC` option. TODO: Why?
 16. Unmount partitions that are in use? `YES`
 
 [Here](https://www.youtube.com/watch?v=P5lMuMhmd4Q) is a step-by-step installation video.
 
+-- TODO: What's innet?
+
 ### Tips
-1. In the image above, the three innet machines' hostname are `alpha`, `beta` and `gamma`. You can change them to whatever you like.
+1. In the image above, the three innet machines' hostnames are `alpha`, `beta` and `gamma`. You can change them to whatever you like.
 
 2. Sometimes the system may get stuck when reboots after completing installation, in such rare cases, just press the reboot button on the back of the server for more than 10 seconds and restart the system.
 
-3. During the installation, we need configured network of `losalamos` with eth1 and we don't need to configure the network of three innet machines during the install process. Thus when installing Ubuntu on the three innet machines, you can either chose eth0 or eth1 during network configuration step, and it will eventually show "network auto configuration failed", just ignore and continue.
+3. During the installation, configure the primary network of `losalamos` on the `eth1` interface. You don't need to configure the network of three innet machines during the install process. Thus, when installing Ubuntu on the three innet machines, you can either chose `eth0` or `eth1` during network configuration step, and it will eventually show "network auto configuration failed", just ignore and continue.
 
-4. You probably want to install the OpenSSH during installation, so that you can then connect to the server using terminal in your own laptops. If you choose `not to update the server automatically` when you install the server, you might need to install the OpenSSH using `sudo apt-get install openssh-server`. If you still cannot install OpenSSH, please refer to [Here](http://askubuntu.com/questions/318012/openssh-server-package-not-available-on-12-04-2).
+4. You probably want to set up the OpenSSH service during installation, so that you can then connect to the server using terminal on your own laptops. If you choose *not to update the server automatically* when you install the server, you need to install OpenSSH using 
 
-5. The openssh-server should be installed on all of the four machines for ssh to function properly, try `apt-get update` before install openssh-server. 
+    sudo su
+    apt update
+    apt install openssh-server
+    
+This will work on `losalamos` assuming Internet connectivity. If you still cannot install OpenSSH, please read [this](http://askubuntu.com/questions/318012/openssh-server-package-not-available-on-12-04-2). 
 
-6. `losalamos` should have access to the internet already after installation. Using `ping google.com` or `ping + other known IP address` to check the connection. 
+5. The openssh-server should be installed on all of the four machines.
+
+6. `losalamos` should have access to the internet already after installation. Using `ping google.com` or `ping theproject.zone` to check the connection.  # TODO : Explain the process of this ping
 
 7. You need to choose unmount the disk partition before installation step. Choose the `guided use entire disk`, if there is multiple partition selections, just take the default one. If you get a note like this: "Note that all data on the disk you select will be erased, but not before you confirm that you really want to make changes. Select disk to partition:" and select "SCSI3 (2,0,0) (sda) - 72.7 GB DELL PERC 5/i" 
 
-8. When reboot after installation is complete, press F11 to get into the boot menu then choose "reboot from Hard Drive C"
+8. When the reboot after installation is complete, you should be able to log into the server.
 
 
 
 
 ## <a name="install-subnet">Establish Subnet</a>
 
+--TODO : Make the set up robust
 Notice: during the entire process (even after you finish this part), you’d better not reboot any of the four machines after you have done with following establish subnet steps, otherwise you may lose your network connection and need to install the OS once again (Welcome for the notes if you could solve this problems without reinstalling OS).
-There are two ways, which is DHCP and static IP, to setup connection between `losalamos` and the other threes machine `alpha`, `beta` and `gamma`. Static IP is easier and safer, so the following step instruction is based on static IP method. If you want to use DHCP, please refer to the instruction below the `Steps` part.
-### Steps
 
-1. Connect servers physically, through the switch and network adapter ports on each machine. That is, connect the gray ethernet cables from each machine to the switch (small white box at the top corner of the server rack).  
-2. Start from the `losalamos`. Configure `eth0` in the file `/etc/network/interfaces`, using the command line `sudo vim /etc/network/interfaces`. The content would be 
+There are two ways, which is DHCP and static IP, to setup connection between `losalamos` and the other threes machine `alpha`, `beta` and `gamma`. Static IP is easier and safer, so the following step instruction is based on static IP method. If you want to use DHCP, please refer to the **DHCP** instructions below the **Static Steps** part.
+### Static Steps
+
+0. Connect servers physically, through the switch and network adapter ports on each machine. That is, connect the gray ethernet cables from each machine to the switch (small white box at the top corner of the server rack).  
+1. Become root. 
+```
+sudo su
+```
+
+![](https://imgs.xkcd.com/comics/sandwich.png)
+
+2. Start from `losalamos`. Configure `eth0` in the file `/etc/network/interfaces`, using the command line `sudo vim /etc/network/interfaces`. The content would be 
 ```
     auto eth0
     iface eth0 inet static
@@ -158,13 +177,12 @@ There are two ways, which is DHCP and static IP, to setup connection between `lo
 ```
 You can find an example [here](https://wiki.debian.org/NetworkConfiguration), in the **Configuring the interface manually** section. 
 Attention: comment the keyword `loopback` and `dhcp` if you use static ip method (This is not needed!). `loopback` and `dhcp` are the default keywords which have already been in the files.
-3. (Recommended)Still in the configuration of `losalamos`. Configure the file `/etc/hosts`, using the command line `sudo vim /etc/hosts`. The content would be
+3. (Recommended) Still in the configuration of `losalamos`. Configure the file `/etc/hosts`, using the command line `sudo vim /etc/hosts`. The content would be
 ```
-     127.0.0.1 localhost
-     10.0.0.2 losalamos.pc.cs.cmu.edu losalamos
-     10.0.0.3 alpha.pc.cs.cmu.edu alpha
-     10.0.0.4 beta.pc.cs.cmu.edu beta
-     10.0.0.5 gamma.pc.cs.cmu.edu gamma
+10.0.0.2 losalamos.pc.cs.cmu.edu losalamos
+10.0.0.3 alpha.pc.cs.cmu.edu alpha
+10.0.0.4 beta.pc.cs.cmu.edu beta
+10.0.0.5 gamma.pc.cs.cmu.edu gamma
 ```
 This [page](http://linux.die.net/man/5/hosts) can give you more info.
 4. When you finished the configuration of `losalamos`, **DO NOT** reboot losalamos. Use `sudo ifdown eth0`, `sudo ifup eth0` and `sudo ifconfig eth0 up` to enable the configuration (Note `eth0` for `losalamos`, not `eth1`! If it returns error information after executing second command, you can ignore it as long as the third command can be executed successfully). Otherwise you may lose your connection to external network. 
