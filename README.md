@@ -188,14 +188,18 @@ The dns-nameservers can be the IP of any DNS service, not necessarily the one pr
 1. To prevent warning for Ambari part, you can set the hosts as 'ip_address domain_name alias', each node should maintain the same copies of hosts configuration file.
 2. If you want to set the hosts as 'ip_address domain_name alias'. In the file `/etc/hosts`, you should list `all the hosts` below the localhost on each machine. Otherwise you would receive warning `Transparent Huge Pages` as you can see below when deploying the Ambari Server.
 3. The warning for 'Transparent Huge Pages' can be removed by using the following commands:
-```
+
 i) Install hugepages:
->> apt-get install hugepages
+
+    mpssh "apt install -y hugepages" -f all
+
 ii) Then type the following command:
->> hugeadm --thp-never
+
+    mpssh "hugeadm --thp-never" -f all
 iii) Check if [never]
-cat /sys/kernel/mm/transparent_hugepage/enabled
-```
+    
+    mpssh "cat /sys/kernel/mm/transparent_hugepage/enabled" -f all
+
 
 
 * Using DHCP
